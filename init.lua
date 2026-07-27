@@ -112,6 +112,7 @@ vim.o.showmode = false
 
 vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
+vim.opt.expandtab = true
 
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
@@ -160,6 +161,9 @@ vim.o.inccommand = 'split'
 
 -- Show which line your cursor is on
 vim.o.cursorline = true
+
+-- Show relative numbers
+vim.o.rnu = true
 
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.o.scrolloff = 10
@@ -706,6 +710,23 @@ require('lazy').setup({
             },
           },
         },
+        gopls = {
+          settings = {
+            gopls = {
+              symbolStyle = 'Full',
+            },
+          },
+        },
+        ts_ls = {
+          root_dir = require('lspconfig').util.root_pattern { 'package.json', 'tsconfig.json' },
+          single_file_support = false,
+          settings = {},
+        },
+        denols = {
+          root_dir = require('lspconfig').util.root_pattern { 'deno.json', 'deno.jsonrc' },
+          single_file_support = false,
+          settings = {},
+        },
       }
 
       -- Ensure the servers and tools above are installed
@@ -740,6 +761,10 @@ require('lazy').setup({
             require('lspconfig')[server_name].setup(server)
           end,
         },
+      }
+
+      require('lspconfig').gleam.setup {
+        capabilities = capabilities,
       }
     end,
   },
@@ -777,6 +802,10 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         sql = { 'sql-formatter' },
+        templ = { 'templ' },
+        verilog = { 'verible_verilog_format' },
+        systemverilog = { 'verible_verilog_format' },
+        gleam = { 'gleam' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -860,6 +889,22 @@ require('lazy').setup({
         -- By default, you may press `<c-space>` to show the documentation.
         -- Optionally, set `auto_show = true` to show the documentation after a delay.
         documentation = { auto_show = false, auto_show_delay_ms = 500 },
+        menu = {
+          draw = {
+            columns = {
+              { 'label', 'label_description', gap = 1 },
+              { 'kind_icon', 'detail' },
+            },
+            components = {
+              detail = {
+                text = function(ctx)
+                  return ctx.item.detail or ''
+                end,
+                highlight = 'BlinkCmpItemAbbr',
+              },
+            },
+          },
+        },
       },
 
       sources = {
@@ -953,7 +998,7 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'gleam' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -961,9 +1006,7 @@ require('lazy').setup({
         -- Some languages depend on vim's regex highlighting system (such as Ruby) for indent rules.
         --  If you are experiencing weird indenting issues, add the language to
         --  the list of additional_vim_regex_highlighting and disabled languages for indent.
-        additional_vim_regex_highlighting = { 'ruby' },
       },
-      indent = { enable = true, disable = { 'ruby' } },
     },
     -- There are additional nvim-treesitter modules that you can use to interact
     -- with nvim-treesitter. You should go explore a few and see what interests you:
@@ -987,7 +1030,7 @@ require('lazy').setup({
   require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
