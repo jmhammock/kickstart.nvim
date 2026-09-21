@@ -118,6 +118,11 @@ do
   -- Don't show the mode, since it's already in the status line
   vim.o.showmode = false
 
+  -- Use four spaces for indentation by default.
+  vim.opt.tabstop = 4
+  vim.opt.shiftwidth = 4
+  vim.opt.expandtab = true
+
   -- Sync clipboard between OS and Neovim.
   --  Schedule the setting after `UiEnter` because it can increase startup-time.
   --  Remove this option if you want your OS clipboard to remain independent.
@@ -163,6 +168,9 @@ do
 
   -- Show which line your cursor is on
   vim.o.cursorline = true
+
+  -- Show relative numbers for easier movement.
+  vim.o.relativenumber = true
 
   -- Minimal number of screen lines to keep above and below the cursor.
   vim.o.scrolloff = 10
@@ -540,7 +548,12 @@ do
     --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
     --   },
     -- },
-    -- pickers = {}
+    pickers = {
+      find_files = {
+        hidden = true,
+        no_ignore = true,
+      },
+    },
     extensions = {
       ['ui-select'] = { require('telescope.themes').get_dropdown() },
     },
@@ -734,7 +747,6 @@ do
   ---@type table<string, vim.lsp.Config>
   local servers = {
     -- clangd = {},
-    -- gopls = {},
     -- pyright = {},
     -- tsc = {},
     --
@@ -745,6 +757,18 @@ do
     -- rust_analyzer = {},
 
     stylua = {}, -- Used to format Lua code
+
+    gopls = {
+      settings = {
+        gopls = {
+          symbolStyle = 'Full',
+        },
+      },
+    },
+
+    -- Use the TypeScript language server for package-managed TypeScript projects.
+    ts_ls = {},
+    denols = {},
 
     -- Special Lua Config, as recommended by neovim help docs
     lua_ls = {
@@ -812,6 +836,10 @@ do
     vim.lsp.config(name, server)
     vim.lsp.enable(name)
   end
+
+  -- Gleam ships its own language server with the compiler.
+  vim.lsp.config('gleam', {})
+  vim.lsp.enable 'gleam'
 end
 
 -- ============================================================
@@ -824,23 +852,22 @@ do
   require('conform').setup {
     notify_on_error = false,
     format_on_save = function(bufnr)
-      -- You can specify filetypes to autoformat on save here:
-      local enabled_filetypes = {
-        -- lua = true,
-        -- python = true,
-      }
-      if enabled_filetypes[vim.bo[bufnr].filetype] then
-        return { timeout_ms = 500 }
-      else
-        return nil
-      end
+      -- C and C++ do not have a single standardized formatting style here.
+      local disable_filetypes = { c = true, cpp = true }
+      if disable_filetypes[vim.bo[bufnr].filetype] then return nil end
+      return { timeout_ms = 500 }
     end,
     default_format_opts = {
       lsp_format = 'fallback', -- Use external formatters if configured below, otherwise use LSP formatting. Set to `false` to disable LSP formatting entirely.
     },
     -- You can also specify external formatters in here.
     formatters_by_ft = {
-      -- rust = { 'rustfmt' },
+      lua = { 'stylua' },
+      sql = { 'sql_formatter' },
+      templ = { 'templ' },
+      verilog = { 'verible' },
+      systemverilog = { 'verible' },
+      gleam = { 'gleam' },
       -- Conform can also run multiple formatters sequentially
       -- python = { "isort", "black" },
       --
@@ -912,6 +939,20 @@ do
       -- By default, you may press `<c-space>` to show the documentation.
       -- Optionally, set `auto_show = true` to show the documentation after a delay.
       documentation = { auto_show = false, auto_show_delay_ms = 500 },
+      menu = {
+        draw = {
+          columns = {
+            { 'label', 'label_description', gap = 1 },
+            { 'kind_icon', 'detail' },
+          },
+          components = {
+            detail = {
+              text = function(ctx) return ctx.item.detail or '' end,
+              highlight = 'BlinkCmpItemAbbr',
+            },
+          },
+        },
+      },
     },
 
     sources = {
@@ -948,7 +989,7 @@ do
   vim.pack.add { { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' } }
 
   -- Ensure basic parsers are installed
-  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'gleam' }
   require('nvim-treesitter').install(parsers)
 
   ---@param buf integer
@@ -1014,11 +1055,14 @@ do
   --  Here are some example plugins that I've included in the Kickstart repository.
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
-  -- require 'kickstart.plugins.debug'
-  -- require 'kickstart.plugins.indent_line'
-  -- require 'kickstart.plugins.lint'
-  -- require 'kickstart.plugins.autopairs'
-  -- require 'kickstart.plugins.neo-tree'
+  require 'kickstart.plugins.debug'
+  require 'kickstart.plugins.indent_line'
+  require 'kickstart.plugins.lint'
+  require 'kickstart.plugins.autopairs'
+  require 'kickstart.plugins.neo-tree'
+
+  -- Load any additional personal plugin modules.
+  require 'custom.plugins'
 
   -- NOTE: You can add your own plugins, configuration, etc. in `lua/custom/plugins/*.lua`.
   --
